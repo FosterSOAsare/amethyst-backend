@@ -1,14 +1,23 @@
 import type { Request, Response } from "express";
 import { EventService } from "./service";
-import { createEventSchema, purchaseTicketSchema } from "./schema";
+import {
+  createEventSchema,
+  purchaseTicketSchema,
+  updateEventSchema,
+} from "./schema";
+import { HttpError, validationErrorBody } from "../shared/errors";
 
 const eventService = new EventService();
 
 export class EventController {
   async createEvent(req: Request, res: Response) {
+    const parsed = createEventSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(validationErrorBody(parsed.error));
+    }
+
     try {
-      const validatedData = createEventSchema.parse(req.body);
-      const event = await eventService.createEvent(validatedData);
+      const event = await eventService.createEvent(parsed.data);
       res.status(201).json(event);
     } catch (error: any) {
       res
@@ -18,9 +27,14 @@ export class EventController {
   }
 
   async updateEvent(req: Request, res: Response) {
+    const parsed = updateEventSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(validationErrorBody(parsed.error));
+    }
+
     try {
       const { id } = req.params;
-      const event = await eventService.updateEvent(id, req.body);
+      const event = await eventService.updateEvent(id, parsed.data);
       if (!event) return res.status(404).json({ message: "Event not found" });
       res.json(event);
     } catch (error: any) {
@@ -60,6 +74,9 @@ export class EventController {
       await eventService.deleteEvent(id);
       res.status(204).send();
     } catch (error: any) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ message: error.message });
+      }
       res
         .status(500)
         .json({ message: error.message || "Failed to delete event" });
@@ -67,9 +84,13 @@ export class EventController {
   }
 
   async purchaseTicket(req: Request, res: Response) {
+    const parsed = purchaseTicketSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(validationErrorBody(parsed.error));
+    }
+
     try {
-      const validatedData = purchaseTicketSchema.parse(req.body);
-      const ticket = await eventService.purchaseTicket(validatedData);
+      const ticket = await eventService.purchaseTicket(parsed.data);
       res.status(201).json(ticket);
     } catch (error: any) {
       res

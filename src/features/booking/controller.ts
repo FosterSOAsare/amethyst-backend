@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { BookingService } from "./service";
+import { createBookingSchema } from "./schema";
+import { HttpError, validationErrorBody } from "../shared/errors";
 
 const bookingService = new BookingService();
 
@@ -7,10 +9,18 @@ export class BookingController {
   constructor(private readonly service: BookingService) {}
 
   createBooking = async (req: Request, res: Response) => {
+    const parsed = createBookingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(validationErrorBody(parsed.error));
+    }
+
     try {
-      const booking = await this.service.createBooking(req.body);
+      const booking = await this.service.createBooking(parsed.data);
       return res.status(201).json(booking);
     } catch (err) {
+      if (err instanceof HttpError) {
+        return res.status(err.status).json({ message: err.message });
+      }
       console.error("[booking] createBooking error", err);
       return res.status(500).json({ message: "Internal server error" });
     }
