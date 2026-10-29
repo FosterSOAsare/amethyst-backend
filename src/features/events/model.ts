@@ -9,6 +9,7 @@ export interface EventDocument extends Document {
   desc: string;
   longDesc?: string;
   leadImage: string;
+  detailsFile?: { url: string; name: string } | null; // optional PDF or Word document
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +24,10 @@ const eventSchema = new Schema<EventDocument>(
     desc: { type: String, required: true },
     longDesc: { type: String },
     leadImage: { type: String, required: true },
+    detailsFile: {
+      type: { url: String, name: String },
+      default: null,
+    },
   },
   {
     timestamps: true,

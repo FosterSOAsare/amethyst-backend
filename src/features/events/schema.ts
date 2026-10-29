@@ -29,6 +29,14 @@ const eventFields = {
   desc: z.string().min(10, "Description must be at least 10 characters"),
   longDesc: z.string().optional(),
   leadImage: z.string().url("Valid image URL is required"),
+  // Optional PDF or Word document. Send null to remove it on update.
+  detailsFile: z
+    .object({
+      url: z.string().url("Details file URL must be valid"),
+      name: z.string().min(1, "Details file name is required"),
+    })
+    .nullable()
+    .optional(),
   tickets: z.array(eventTicketSchema),
 };
 
