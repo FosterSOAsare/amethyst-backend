@@ -2,6 +2,7 @@ import { BookingModel } from "./model";
 import { paymentService } from "../payment/service";
 import type { CreateBookingInput, BookingStatus } from "./schema";
 import { sendBookingConfirmation } from "../shared/email.service";
+import { HttpError } from "../shared/errors";
 
 function generateReference(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -24,16 +25,13 @@ const ROOM_PRICES: Record<string, number> = {
 export class BookingService {
   async createBooking(input: CreateBookingInput) {
     const reference = generateReference();
-    const guests =
-      typeof input.guests === "string"
-        ? parseInt(input.guests, 10)
-        : input.guests;
+    const guests = input.guests;
 
     const checkIn = new Date(input.checkIn);
     const checkOut = new Date(input.checkOut);
 
     if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-      throw new Error("Invalid check-in or check-out date.");
+      throw new HttpError(400, "Invalid check-in or check-out date.");
     }
 
     const now = new Date();
@@ -43,19 +41,11 @@ export class BookingService {
     checkInCheck.setHours(0, 0, 0, 0);
 
     if (checkInCheck < now) {
-      throw new Error("Cannot book dates in the past.");
+      throw new HttpError(400, "Cannot book dates in the past.");
     }
 
     if (checkOut <= checkIn) {
-      throw new Error("Check-out date must be after check-in date.");
-    }
-
-    if (guests <= 0) {
-      throw new Error("Guests must be at least 1.");
-    }
-
-    if (!input.email || !input.email.includes("@")) {
-      throw new Error("Invalid email address.");
+      throw new HttpError(400, "Check-out date must be after check-in date.");
     }
 
     // Check for underlying overlaps in the database
@@ -69,7 +59,8 @@ export class BookingService {
 
     if (conflict) {
       const typeLabel = input.type === "room" ? "room" : "table";
-      throw new Error(
+      throw new HttpError(
+        409,
         `This ${typeLabel} is already booked for the selected dates/times.`,
       );
     }
