@@ -4,6 +4,7 @@ import { TicketPurchaseModel } from "../tickets/purchase-model";
 import { generateReference } from "../shared/utils";
 import { paymentService } from "../payment/service";
 import { sendTicketPurchaseConfirmation } from "../shared/email.service";
+import { HttpError } from "../shared/errors";
 import type { CreateEventInput, PurchaseTicketInput } from "./schema";
 
 export class EventService {
@@ -82,7 +83,7 @@ export class EventService {
     // Determine the query (either _id or eventId string)
     const query = id.startsWith("EV_") ? { eventId: id } : { _id: id };
     const event = await EventModel.findOne(query);
-    if (!event) throw new Error("Event not found");
+    if (!event) throw new HttpError(404, "Event not found");
 
     // Delete associated tickets (using the actual event _id)
     await TicketModel.deleteMany({ eventId: event._id });

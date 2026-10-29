@@ -6,28 +6,40 @@ export const eventTicketSchema = z.object({
   totalQuantity: z.number().min(1).optional().nullable(), // Nullable for unlimited
 });
 
-export const createEventSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  date: z
-    .string()
-    .transform((val) => new Date(val))
-    .refine((date) => date > new Date(), {
+const eventDateSchema = z
+  .string()
+  .transform((val) => new Date(val))
+  .refine((date) => date > new Date(), {
+    message: "Event date must be in the future",
+  })
+  .or(
+    z.date().refine((date) => date > new Date(), {
       message: "Event date must be in the future",
-    })
-    .or(
-      z.date().refine((date) => date > new Date(), {
-        message: "Event date must be in the future",
-      }),
-    ),
+    }),
+  );
+
+// The rules for each field, shared by create and update.
+const eventFields = {
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  date: eventDateSchema,
   time: z.string().min(1, "Time is required"),
   location: z.string().min(1, "Location is required"),
   desc: z.string().min(10, "Description must be at least 10 characters"),
   longDesc: z.string().optional(),
   leadImage: z.string().url("Valid image URL is required"),
-  tickets: z.array(eventTicketSchema).optional().default([]),
+  tickets: z.array(eventTicketSchema),
+};
+
+export const createEventSchema = z.object({
+  ...eventFields,
+  tickets: eventFields.tickets.optional().default([]),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
+
+// Same rules as create, but every field is optional so an update can change just one.
+// Tickets get no default here: leaving them out must keep the existing tickets.
+export const updateEventSchema = z.object(eventFields).partial();
 
 export const purchaseTicketSchema = z.object({
   eventId: z.string().min(1, "Event ID is required"),
