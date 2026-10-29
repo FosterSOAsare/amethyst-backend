@@ -5,20 +5,22 @@ import { generateReference } from "../shared/utils";
 import { paymentService } from "../payment/service";
 import { sendTicketPurchaseConfirmation } from "../shared/email.service";
 import { HttpError } from "../shared/errors";
+import { nextSequenceValue } from "../shared/counter";
 import type { CreateEventInput, PurchaseTicketInput } from "./schema";
 
 export class EventService {
   private async generateEventId(): Promise<string> {
+    const next = await nextSequenceValue("eventId", () =>
+      this.findHighestEventNumber(),
+    );
+    return `EV_${next.toString().padStart(4, "0")}`;
+  }
+
+  // Only used once, to start the counter after the events that already exist.
+  private async findHighestEventNumber(): Promise<number> {
     const lastEvent = await EventModel.findOne().sort({ eventId: -1 });
-
-    if (!lastEvent || !lastEvent.eventId) return "EV_0001";
-
-    const parts = (lastEvent.eventId as string).split("_");
-    const lastNum = parts.length > 1 ? parseInt(parts[1]) : 0;
-
-    if (isNaN(lastNum)) return "EV_0001";
-
-    return `EV_${(lastNum + 1).toString().padStart(4, "0")}`;
+    const lastNum = parseInt(lastEvent?.eventId?.split("_")[1] ?? "0", 10);
+    return isNaN(lastNum) ? 0 : lastNum;
   }
 
   async createEvent(input: CreateEventInput) {
