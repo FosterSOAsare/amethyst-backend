@@ -6,17 +6,19 @@ export const eventTicketSchema = z.object({
   totalQuantity: z.number().min(1).optional().nullable(), // Nullable for unlimited
 });
 
-const eventDateSchema = z
-  .string()
-  .transform((val) => new Date(val))
-  .refine((date) => date > new Date(), {
-    message: "Event date must be in the future",
-  })
-  .or(
-    z.date().refine((date) => date > new Date(), {
-      message: "Event date must be in the future",
-    }),
-  );
+// Event dates arrive as "YYYY-MM-DD", which JavaScript reads as midnight UTC.
+// Comparing with midnight UTC today lets an event happen today, as the form allows.
+function startOfToday(): Date {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  return today;
+}
+
+const eventDateSchema = z.coerce
+  .date({ message: "Please enter a valid date" })
+  .refine((date) => date >= startOfToday(), {
+    message: "Event date cannot be in the past",
+  });
 
 // The rules for each field, shared by create and update.
 const eventFields = {
