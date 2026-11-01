@@ -19,7 +19,8 @@ export const createBookingSchema = z.object({
   guests: z.coerce
     .number({ message: "Guests must be a number" })
     .int("Guests must be a whole number")
-    .min(1, "Guests must be at least 1"),
+    .min(1, "Guests must be at least 1")
+    .max(6, "A booking can have at most 6 guests"),
   amount: z.number().optional(), // calculated/passed from front-end
   checkIn: z.string().min(1, "Please select a check-in date"),
   checkOut: z.string().min(1, "Please select a check-out date"),
